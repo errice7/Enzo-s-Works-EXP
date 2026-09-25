@@ -1,0 +1,1 @@
+{"name":"proximo-destino-irlanda","version":"1.0.0","private":true,"type":"module","scripts":{"build":"node build.mjs","test":"node --test tests/model.test.mjs","start":"python3 -m http.server 3000 --directory public"}}

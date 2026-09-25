@@ -2,6 +2,8 @@
 
 ## Projetos
 
+- [Planejamento de intercâmbio — Irlanda](./planejamento-intercambio-irlanda): simulador de orçamento em reais e euros, estudos, trabalho e checklist. Instruções na pasta do projeto.
+
 - [NOIR — Streetwear](./noir): vitrine em React e TypeScript, com filtros, carrinho e checkout demonstrativo.
 
 ### Executar o Noir
