@@ -1,0 +1,17 @@
+"use client";
+import {useState} from "react";
+import {ArrowUpRight,ArrowDown,ShoppingBag,Plus} from "lucide-react";
+import {CartProvider,useCart,CartDrawer} from "./store";
+import {categories,products,money} from "./products";
+function Storefront(){
+ const [category,setCategory]=useState("Todas as Peças");const {count,add,setOpen}=useCart();
+ function select(c:string){setCategory(c);document.getElementById("colecao")?.scrollIntoView({behavior:"smooth"});}
+ const shown=products.filter(p=>category==="Todas as Peças"||p.category===category);
+ return <><div className="announcement">FEITO PARA AS RUAS. CRIADO PARA VOCÊ. <span>DROP 001 / 2026</span></div>
+ <header className="header"><a className="logo" href="#" aria-label="NOIR início">NOIR<span>®</span></a><nav aria-label="Categorias">{categories.map(c=><button key={c} className={category===c?"active":""} onClick={()=>select(c)}>{c}</button>)}</nav><button className="bag" onClick={()=>setOpen(true)} aria-label={`Abrir carrinho, ${count} itens`}><ShoppingBag size={21}/><span className="bag-label">Sacola</span><b>{count}</b></button></header>
+ <main><section className="hero"><img src="https://images.unsplash.com/photo-1710165052772-7f2c3aa5444a?auto=format&fit=crop&w=1920&q=85" alt="Moda urbana: modelo de moletom em um túnel" fetchPriority="high"/><div className="hero-shade"/><div className="hero-copy"><div className="eyebrow"><i/> NOVA COLEÇÃO — VOL. 01</div><h1>SEU RITMO.<br/>SUAS <em>REGRAS.</em></h1><p>Silhuetas livres. Presença autêntica.<br/>O essencial, do seu jeito.</p><button className="primary" onClick={()=>select("Todas as Peças")}>Ver Coleção <ArrowUpRight size={20}/></button></div><div className="hero-foot"><span>ESSENTIALS FOR THE EVERYDAY</span><button aria-label="Explorar produtos" onClick={()=>select("Todas as Peças")}><ArrowDown size={16}/> EXPLORE O DROP</button><span>01 — 06</span></div></section>
+ <section id="colecao" className="collection"><div className="collection-head"><div><div className="eyebrow muted">MENOS EXCESSO. MAIS IDENTIDADE.</div><h2>Seu próximo essencial<span>.</span></h2></div><span className="product-count">{shown.length.toString().padStart(2,"0")} peças selecionadas</span></div><div className="filters" aria-label="Filtrar coleção">{categories.map(c=><button key={c} aria-pressed={category===c} onClick={()=>setCategory(c)} className={category===c?"selected":""}>{c}</button>)}</div>
+ <div key={category} className="product-grid">{shown.map(p=><article className="product" key={p.id}><div className="product-image"><img src={p.image} alt={p.name} loading="lazy"/>{p.badge&&<span className="product-badge">{p.badge}</span>}<span className="product-number">N° {String(p.id).padStart(2,"0")}</span><button onClick={()=>add(p.id)} className="quick-add" aria-label={`Adicionar ${p.name}`}><Plus size={18}/> Adicionar à sacola</button></div><div className="product-meta"><div><span className="product-category">{p.category} / {p.color}</span><h3>{p.name}</h3></div><button className="mobile-add" aria-label={`Adicionar ${p.name}`} onClick={()=>add(p.id)}><Plus size={18}/></button></div><div className="price">{money(p.price)} <span>ou 3x de {money(p.price/3)}</span></div></article>)}</div></section></main>
+ <footer><a className="logo" href="#">NOIR<span>®</span></a><span>Vista sua própria direção.</span><small>© 2026 NOIR. Coleção demonstrativa.</small></footer><CartDrawer/></>;
+}
+export default function Page(){return <CartProvider><Storefront/></CartProvider>}

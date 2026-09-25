@@ -1,0 +1,29 @@
+"use client";
+import {createContext,useContext,useState,useEffect,useRef,type ReactNode} from "react";
+import {ShoppingBag,Plus,Minus,Trash2,ArrowRight,Check,X} from "lucide-react";
+import {Sheet,SheetContent,SheetHeader,SheetTitle,SheetDescription,SheetClose} from "@/components/ui/sheet";
+import {products,money} from "./products";
+type Cart=Record<number,number>;
+type State={cart:Cart;count:number;open:boolean;setOpen:(b:boolean)=>void;add:(id:number)=>void;change:(id:number,n:number)=>void;remove:(id:number)=>void;clear:()=>void};
+const Context=createContext<State|null>(null);
+export function useCart(){return useContext(Context)!;}
+export function CartProvider({children}:{children:ReactNode}){const [cart,setCart]=useState<Cart>({});const [open,setOpen]=useState(false);
+ const [restored,setRestored]=useState(false);
+ useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem("noir-cart")||"{}");if(saved&&typeof saved==="object"&&!Array.isArray(saved)){const valid:Cart={};for(const product of products){const quantity=saved[product.id];if(Number.isInteger(quantity)&&quantity>0)valid[product.id]=Math.min(quantity,99);}setCart(valid);}}catch{}setRestored(true);},[]);
+ useEffect(()=>{if(restored){try{localStorage.setItem("noir-cart",JSON.stringify(cart));}catch{}}},[cart,restored]);
+ const add=(id:number)=>{if(!products.some(p=>p.id===id))throw new Error("Produto não encontrado");setCart(c=>({...c,[id]:(c[id]||0)+1}));setOpen(true);};
+ const change=(id:number,n:number)=>setCart(c=>{const next={...c};next[id]=Math.max(0,(c[id]||0)+n);if(!next[id])delete next[id];return next;});
+ const remove=(id:number)=>setCart(c=>{const next={...c};delete next[id];return next;});
+ const state={cart,count:Object.values(cart).reduce((a,b)=>a+b,0),open,setOpen,add,change,remove,clear:()=>setCart({})};
+ const stateRef=useRef(state);stateRef.current=state;
+ useEffect(()=>{const context=(document as any).modelContext;if(!context?.registerTool)return;const lifecycle=new AbortController();const register=(tool:any)=>{try{Promise.resolve(context.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}};
+ register({name:"read_noir_catalog",description:"Listar catálogo e sacola atual da NOIR",inputSchema:{type:"object",properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>({products,cart:stateRef.current.cart})});
+ register({name:"add_noir_cart_item",description:"Adicionar uma unidade à sacola e abrir a sacola. Não conclui compra.",inputSchema:{type:"object",properties:{productId:{type:"integer"}},required:["productId"],additionalProperties:false},annotations:{readOnlyHint:false},execute:async(input:any)=>{if(!Number.isInteger(input.productId)||!products.some(p=>p.id===input.productId))throw new Error("Produto inválido");stateRef.current.add(input.productId);await new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r())));return {cart:stateRef.current.cart};}});return()=>lifecycle.abort();},[]);
+ return <Context.Provider value={state}>{children}</Context.Provider>;
+}
+export function CartDrawer(){const {cart,count,open,setOpen,change,remove,clear}=useCart();const [checkout,setCheckout]=useState(false);const [done,setDone]=useState(false);const lines=products.filter(p=>cart[p.id]);const total=lines.reduce((v,p)=>v+Math.round(p.price*100)*cart[p.id],0)/100;
+ useEffect(()=>{if(!open){setCheckout(false);setDone(false);}},[open]);
+ return <Sheet open={open} onOpenChange={setOpen}><SheetContent showCloseButton={false} className="cart-drawer"><SheetHeader className="cart-header"><SheetTitle>{done?"Tudo certo!":checkout?"Revisar sacola":"Sua sacola"} <span>({count})</span></SheetTitle><SheetDescription>{done?"Sua experiência NOIR começa aqui.":"Seus novos essenciais estão aqui."}</SheetDescription><SheetClose className="cart-close" aria-label="Fechar sacola"><X size={23}/></SheetClose></SheetHeader>
+ {done?<div className="empty-cart"><div className="success-icon"><Check size={32}/></div><h3>Pedido de demonstração concluído.</h3><p>Nenhuma cobrança foi realizada. Esta loja é uma experiência demonstrativa.</p><button className="primary" onClick={()=>setOpen(false)}>Continuar explorando <ArrowRight size={18}/></button></div>:!lines.length?<div className="empty-cart"><ShoppingBag size={44}/><h3>Espaço para novos essenciais.</h3><p>Sua sacola ainda está vazia.<br/>Encontre a próxima peça do seu dia a dia.</p><button className="primary" onClick={()=>setOpen(false)}>Explorar coleção <ArrowRight size={18}/></button></div>:<><div className="cart-items">{checkout&&<div className="checkout-note"><b>Finalização demonstrativa</b><p>Confira as peças abaixo. A confirmação não realiza cobrança nem envio.</p></div>}{lines.map(p=><div className="cart-item" key={p.id}><img src={p.image} alt={p.name}/><div className="cart-item-info"><span className="product-category">{p.color}</span><h3>{p.name}</h3><strong>{money(p.price)}</strong><div className="item-controls"><div className="quantity"><button aria-label={`Diminuir ${p.name}`} onClick={()=>change(p.id,-1)}><Minus size={14}/></button><span>{cart[p.id]}</span><button aria-label={`Aumentar ${p.name}`} onClick={()=>change(p.id,1)}><Plus size={14}/></button></div><button className="remove" onClick={()=>remove(p.id)} aria-label={`Remover ${p.name}`}><Trash2 size={17}/></button></div></div></div>)}</div><div className="cart-summary"><div aria-live="polite"><span>Subtotal</span><strong>{money(total)}</strong></div><p>Valores ilustrativos. Sem cobrança real.</p><button className="primary" onClick={()=>{if(checkout){clear();setDone(true);}else setCheckout(true);}}>{checkout?"Confirmar demonstração":"Revisar sacola"}<ArrowRight size={18}/></button><button className="continue" onClick={()=>checkout?setCheckout(false):setOpen(false)}>{checkout?"Voltar para a sacola":"Continuar comprando"}</button></div></>}
+ </SheetContent></Sheet>;
+}
